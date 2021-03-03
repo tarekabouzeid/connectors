@@ -65,7 +65,7 @@ class DeltaInputFormat(realInput: ParquetInputFormat[ArrayWritable])
   private var fileToPartition: Map[URI, Array[PartitionColumnInfo]] = Map.empty
 
   def this() {
-    this(new ParquetInputFormat[ArrayWritable](classOf[DataWritableReadSupport]))
+    this(new ParquetInputFormat[ArrayWritable])
   }
 
   override def getRecordReader(
@@ -74,7 +74,7 @@ class DeltaInputFormat(realInput: ParquetInputFormat[ArrayWritable])
       reporter: Reporter): RecordReader[NullWritable, ArrayWritable] = {
     split match {
       case deltaSplit: DeltaInputSplit =>
-        if (Utilities.getUseVectorizedInputFileFormat(job)) {
+        if (Utilities.getIsVectorized(job)) {
           throw new UnsupportedOperationException(
             "Reading Delta tables using Parquet's VectorizedReader is not supported")
         } else {

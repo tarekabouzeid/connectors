@@ -25,12 +25,12 @@ lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 
 val sparkVersion = "2.4.3"
 val hadoopVersion = "2.7.2"
-val hiveVersion = "2.3.7"
+val hiveVersion = "3.1.2"
 val deltaVersion = "0.5.0"
 
 lazy val commonSettings = Seq(
   organization := "io.delta",
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.11.12",
   fork := true,
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   scalacOptions += "-target:jvm-1.8",
