@@ -17,12 +17,12 @@
 package io.delta.hive
 
 import java.io.{Closeable, File}
-
 import scala.collection.JavaConverters._
-
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.mapred.{JobConf, MiniMRCluster}
+import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.MRJobConfig
+import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster
+import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 
 class HiveMRSuite extends HiveConnectorTest {
@@ -39,11 +39,18 @@ class HiveMRSuite extends HiveConnectorTest {
     jConf.setInt(YarnConfiguration.YARN_MINICLUSTER_NM_PMEM_MB, 512);
     jConf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);
     jConf.setInt(YarnConfiguration.RM_SCHEDULER_MAXIMUM_ALLOCATION_MB, 512);
-    val mr = new MiniMRCluster(2, namenode, 1, null, null, jConf)
-
+    jConf.setInt(YarnConfiguration.APPLICATION_HISTORY_ENABLED, 1);
+    jConf.set("yarn.log-aggregation-enable", "false");
+    jConf.setInt(YarnConfiguration.LOG_AGGREGATION_RETAIN_SECONDS, 1000000000);
+    jConf.set("yarn.log-aggregation.TFile.remote-app-log-dir", "file:///tmp/tarek_logs_TF");
+    jConf.set("yarn.log-aggregation.file-formats", "TFile");
+    jConf.set("yarn.nodemanager.remote-app-log-dir", "file:///tmp/tarek_logs");
+    val mr = new MiniMRYarnCluster(namenode, 1)
+    mr.init(jConf)
+    mr.start()
     new Closeable {
       override def close(): Unit = {
-        mr.shutdown()
+        mr.stop()
       }
     }
   }
