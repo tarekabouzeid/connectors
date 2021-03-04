@@ -24,7 +24,7 @@ lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 
 val sparkVersion = "2.4.3"
-val hadoopVersion = "2.7.2"
+val hadoopVersion = "3.1.1"
 val hiveVersion = "3.1.2"
 val deltaVersion = "0.5.0"
 
@@ -158,21 +158,23 @@ lazy val hive = (project in file("hive")) dependsOn(standalone) settings (
     "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
     "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests"
   ),
-
+  dependencyOverrides ++= Set(
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
+  ),
   /** Hive assembly jar. Build with `assembly` command */
   logLevel in assembly := Level.Info,
   test in assembly := {},
   assemblyJarName in assembly := s"${name.value}-assembly_${scalaBinaryVersion.value}-${version.value}.jar",
   // default merge strategy
-    /**
   assemblyShadeRules in assembly := Seq(
+    /**
      * Hive 2.3.7 uses an old paranamer version that doesn't support Scala 2.12
      * (https://issues.apache.org/jira/browse/SPARK-22128), so we need to shade our own paranamer
      * version to avoid conflicts.
+     */
     ShadeRule.rename("com.thoughtworks.paranamer.**" -> "shadedelta.@0").inAll
     )
 )
-     */
 
 lazy val hiveMR = (project in file("hive-mr")) dependsOn(hive % "test->test") settings (
   name := "hive-mr",
@@ -196,9 +198,15 @@ lazy val hiveMR = (project in file("hive-mr")) dependsOn(hive % "test->test") se
       ExclusionRule("org.pentaho", "pentaho-aggdesigner-algorithm")
     ),
     // TODO Figure out how this fixes some bad dependency
-    "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+    "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    ),
     "org.scalatest" %% "scalatest" % "3.0.5" % "test",
     "io.delta" %% "delta-core" % deltaVersion % "test" excludeAll ExclusionRule("org.apache.hadoop")
+  ),
+  dependencyOverrides ++= Set(
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
   )
 )
 
@@ -207,6 +215,8 @@ lazy val hiveTez = (project in file("hive-tez")) dependsOn(hive % "test->test") 
   commonSettings,
   skipReleaseSettings,
   libraryDependencies ++= Seq(
+    "javax.validation" % "validation-api" % "2.0.1.Final",
+    "org.glassfish.hk2" % "hk2-locator" % "3.0.1",
     "org.apache.hadoop" % "hadoop-client" % hadoopVersion % "provided" excludeAll (
       ExclusionRule(organization = "com.google.protobuf")
       ),
@@ -240,13 +250,19 @@ lazy val hiveTez = (project in file("hive-tez")) dependsOn(hive % "test->test") 
     ),
     "org.apache.hadoop" % "hadoop-yarn-common" % hadoopVersion % "test",
     "org.apache.hadoop" % "hadoop-yarn-api" % hadoopVersion % "test",
-    "org.apache.tez" % "tez-mapreduce" % "0.8.4" % "test",
-    "org.apache.tez" % "tez-dag" % "0.8.4" % "test",
-    "org.apache.tez" % "tez-tests" % "0.8.4" % "test" classifier "tests",
+    "org.apache.tez" % "tez-mapreduce" % "0.10.0" % "test",
+    "org.apache.tez" % "tez-dag" % "0.10.0" % "test",
+    "org.apache.tez" % "tez-tests" % "0.10.0" % "test" classifier "tests",
     // TODO Figure out how this fixes some bad dependency
-    "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+    "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    ),
     "org.scalatest" %% "scalatest" % "3.0.5" % "test",
     "io.delta" %% "delta-core" % deltaVersion % "test" excludeAll ExclusionRule("org.apache.hadoop")
+  ),
+  dependencyOverrides ++= Set(
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
   )
 )
 
@@ -268,6 +284,9 @@ lazy val standalone = (project in file("standalone"))
         ExclusionRule("com.fasterxml.jackson.module")
       ),
       "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+    ),
+    dependencyOverrides ++= Set(
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
     ))
 
   /**
@@ -304,11 +323,26 @@ lazy val goldenTables = (project in file("golden-tables")) settings (
   libraryDependencies ++= Seq(
     // Test Dependencies
     "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-    "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "test",
+    "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "test" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    ),
     "io.delta" % "delta-core_2.12" % "0.7.0" % "test",
     "commons-io" % "commons-io" % "2.8.0" % "test",
-    "org.apache.spark" % "spark-catalyst_2.12" % "3.0.0" % "test" classifier "tests",
-    "org.apache.spark" % "spark-core_2.12" % "3.0.0" % "test" classifier "tests",
-    "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "test" classifier "tests"
-  )
+    "org.apache.spark" % "spark-catalyst_2.12" % "3.0.0" % "test" classifier "tests" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    ),
+    "org.apache.spark" % "spark-core_2.12" % "3.0.0" % "test" classifier "tests" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    ),
+    "org.apache.spark" % "spark-sql_2.12" % "3.0.0" % "test" classifier "tests" excludeAll (
+      ExclusionRule("com.fasterxml.jackson.core"),
+      ExclusionRule("com.fasterxml.jackson.module")
+    )
+  ),
+  dependencyOverrides ++= Set(
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
+    )
 )
