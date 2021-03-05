@@ -65,7 +65,7 @@ class DeltaInputFormat(realInput: ParquetInputFormat[ArrayWritable])
   private var fileToPartition: Map[URI, Array[PartitionColumnInfo]] = Map.empty
 
   def this() {
-    this(new ParquetInputFormat[ArrayWritable])
+    this(new ParquetInputFormat[ArrayWritable](classOf[DataWritableReadSupport]))
   }
 
   override def getRecordReader(
